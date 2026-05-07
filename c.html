@@ -159,9 +159,11 @@
     /***** COUNTDOWN LOGIC *****/
     // Set start and target dates (target = start + 2 years 6 months)
     const startDate = new Date("November 20, 2024 00:00:00").getTime();
-    const targetDate = new Date(startDate);
-    targetDate.setFullYear(targetDate.getFullYear() + 2);
-    targetDate.setMonth(targetDate.getMonth() + 6);
+
+const targetDate = new Date(startDate);
+targetDate.setFullYear(targetDate.getFullYear() + 2);
+targetDate.setMonth(targetDate.getMonth() + 6);
+targetDate.setDate(targetDate.getDate() + 55);
     document.getElementById("end-date").innerText = "Ends on: " + targetDate.toDateString();
     
     function updateCountdown() {

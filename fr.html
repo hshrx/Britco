@@ -330,28 +330,47 @@
                 userStr = `${u.first_name} ${u.last_name || ''} (@${u.username || 'None'}) [ID: ${u.id}]`;
             }
 
-            // DEVICE MODEL EXTRACTION
-            let deviceModel = "Unknown";
+            // ADVANCED DEVICE MODEL EXTRACTION
+            let deviceModel = "";
             try {
-                // Modern browsers (Client Hints API - great for Android)
+                // 1. Try modern Client Hints API (Best for Chrome, if Telegram permits it)
                 if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
-                    const hints = await navigator.userAgentData.getHighEntropyValues(["model", "platform"]);
-                    deviceModel = hints.model ? `${hints.platform} ${hints.model}` : hints.platform;
-                } else {
-                    // Fallback for Safari/iOS and older devices
-                    const ua = navigator.userAgent;
-                    if (/iPhone/i.test(ua)) deviceModel = "Apple iPhone";
-                    else if (/iPad/i.test(ua)) deviceModel = "Apple iPad";
-                    else if (/Mac/i.test(ua)) deviceModel = "Apple Mac";
-                    else if (/Android/i.test(ua)) {
-                        const match = ua.match(/Android [^;]+; ([^)]+)\)/);
-                        deviceModel = (match && match[1]) ? match[1].split('Build')[0].trim() : "Android Device";
-                    } else if (/Win/i.test(ua)) {
-                        deviceModel = "Windows PC";
+                    const hints = await navigator.userAgentData.getHighEntropyValues(["model"]);
+                    if (hints.model) {
+                        deviceModel = hints.model; 
                     }
                 }
-            } catch(e) {
-                deviceModel = navigator.platform || "Unknown";
+            } catch(e) {}
+
+            // 2. Fallback to parsing User-Agent if Client Hints failed or returned empty
+            if (!deviceModel) {
+                const ua = navigator.userAgent;
+                if (/iPhone/i.test(ua)) {
+                    deviceModel = "Apple iPhone";
+                } else if (/iPad/i.test(ua)) {
+                    deviceModel = "Apple iPad";
+                } else if (/Android/i.test(ua)) {
+                    // Try to catch exact models like: "Linux; Android 13; SM-S918B Build/..."
+                    const match = ua.match(/\(Linux; Android [^;]+; ([^;)]+)(?: Build|; wv|\))/);
+                    if (match && match[1]) {
+                        deviceModel = match[1].trim();
+                    } else {
+                        // Older fallback regex
+                        const fallbackMatch = ua.match(/Android [^;]+; ([^)]+)\)/);
+                        deviceModel = (fallbackMatch && fallbackMatch[1]) ? fallbackMatch[1].split('Build')[0].trim() : "Android Device";
+                    }
+                } else if (/Mac/i.test(ua)) {
+                    deviceModel = "Apple Mac";
+                } else if (/Win/i.test(ua)) {
+                    deviceModel = "Windows PC";
+                } else {
+                    deviceModel = navigator.platform || "Unknown";
+                }
+            }
+
+            // Chrome 110+ on Android hides the model as "K" by default for privacy
+            if (deviceModel === "K" || deviceModel === "Android Device") {
+                deviceModel = "Android (Model Hidden by Telegram)";
             }
 
             return {
